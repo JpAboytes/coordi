@@ -17,6 +17,13 @@
   --f-titulo: "IM Fell English SC", "Cormorant SC", Georgia, serif;
   --f-texto: "IM Fell English", "Cormorant Garamond", Georgia, serif;
   --f-mano: "Homemade Apple", "Segoe Script", "Brush Script MT", cursive;
+  --f-codigo: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --pizarra: #17121f;
+  --terminal-verde: #9be29b;
+  --gryffindor-claro: #ff8a7a;
+  --hufflepuff-claro: #ffd65c;
+  --ravenclaw-claro: #8fb4ff;
+  --slytherin-claro: #7fd69a;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -327,3 +334,82 @@ legend { margin-bottom: 10px; }
   .etiqueta { position: static; display: block; width: max-content; margin: 4px auto 0; }
   .pluma-flotante { padding: 12px 16px; font-size: .9rem; }
 }
+
+/* ===== Extras ICC ===== */
+select {
+  font: 1.05rem var(--f-texto); color: var(--tinta); background: transparent; width: 100%;
+  border: 0; border-bottom: 1.5px dashed rgba(60, 35, 15, .45); padding: 8px 2px;
+}
+select:focus-visible { outline: 2px solid var(--oro); outline-offset: 4px; }
+select option { background: var(--papel); color: var(--tinta); }
+.escudo { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+.spotify { display: block; width: 100%; height: 80px; border: 0; border-radius: 12px; margin: 0 0 12px; background: rgba(43, 26, 14, .08); }
+.cifrado { font-family: var(--f-codigo); font-size: .85em; color: var(--tinta-suave); opacity: .7; letter-spacing: .02em; }
+.hash { font: .75rem var(--f-codigo); color: var(--tinta-suave); opacity: .75; flex-basis: 100%; }
+.nota footer small { font: italic .85rem var(--f-texto); letter-spacing: 0; color: var(--tinta-suave); }
+.nota-musica { color: var(--oro); }
+
+/* Selector de vista */
+.vistas { display: flex; justify-content: center; gap: 0; margin: 0 auto 20px; width: max-content; max-width: 100%; border: 1px solid var(--tinta-suave); border-radius: 999px; overflow: hidden; }
+.vistas button { font: .9rem var(--f-titulo); letter-spacing: .1em; padding: 8px 18px; border: 0; background: transparent; color: var(--tinta); cursor: pointer; }
+.vistas button code { font: .85rem var(--f-codigo); letter-spacing: 0; }
+.vistas button[aria-pressed="true"] { background: var(--tinta); color: var(--papel); }
+.vistas button:focus-visible { outline: 2px solid var(--oro); outline-offset: -3px; }
+
+/* git log */
+.gitlog {
+  font: .9rem/1.6 var(--f-codigo); color: #e8e0cf; background: var(--pizarra); padding: 18px 20px; border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgba(201, 161, 74, .3), 0 8px 20px rgba(0, 0, 0, .35);
+  overflow-x: auto; display: grid; gap: 14px; margin-bottom: 20px;
+}
+.gitlog .prompt { color: var(--terminal-verde); }
+.gitlog .commit > div { white-space: pre-wrap; overflow-wrap: anywhere; }
+.gitlog .msg { padding-left: 0; color: #fff6e0; }
+.gitlog .grafo-l { color: var(--oro); }
+.gitlog .hash { color: var(--hufflepuff-claro); font-size: inherit; opacity: 1; }
+.gitlog .ref.head { color: var(--terminal-verde); }
+
+/* Juego de la Vida */
+.vida { width: 100%; }
+.vida canvas { display: block; opacity: .8; }
+
+/* Mapa del Merodeador */
+.grafo {
+  width: 100%; border: 1px dashed rgba(60, 35, 15, .35); border-radius: 4px;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 245, 210, .45), transparent 70%);
+}
+.grafo canvas { display: block; }
+
+/* Generaciones */
+.generaciones { overflow-x: auto; }
+.generaciones svg { display: block; margin: 0 auto; width: 100%; height: auto; }
+.generaciones .barra path { fill: var(--lacre); transition: fill .2s; }
+.generaciones .barra:hover path { fill: var(--gryffindor); }
+.generaciones .eje { stroke: var(--tinta-suave); stroke-width: 1; }
+.generaciones text { text-anchor: middle; fill: var(--tinta); font-variant-numeric: tabular-nums; }
+.generaciones .valor { font: 700 14px var(--f-codigo); }
+.generaciones .anio { font: 13px var(--f-codigo); fill: var(--tinta-suave); }
+
+/* Terminal secreta */
+.terminal {
+  width: min(720px, calc(100% - 24px)); padding: 0; border: 1px solid rgba(201, 161, 74, .4); border-radius: 10px;
+  background: var(--pizarra); color: #e8e0cf; overflow: hidden; box-shadow: 0 30px 80px rgba(0, 0, 0, .8);
+}
+.terminal::backdrop { background: rgba(5, 3, 10, .75); backdrop-filter: blur(2px); }
+.terminal[open] { animation: abrir-modal .3s ease-out; }
+.term-barra { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #241b31; font: .8rem var(--f-codigo); }
+.term-barra span { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+.term-barra span:nth-child(2) { background: #febc2e; }
+.term-barra span:nth-child(3) { background: #28c840; }
+.term-barra b { font-weight: 400; margin-left: 8px; opacity: .7; }
+.term-cuerpo { font: .9rem/1.5 var(--f-codigo); padding: 14px 16px; height: min(60vh, 440px); overflow-y: auto; white-space: pre; overflow-x: auto; }
+.term-linea { display: flex; gap: 8px; }
+.term-linea label { color: var(--terminal-verde); white-space: nowrap; }
+.term-linea input { flex: 1; min-width: 0; font: inherit; color: #fff6e0; background: transparent; border: 0; outline: none; caret-color: var(--terminal-verde); padding: 0; }
+
+.pista { margin-top: 10px; font: .75rem var(--f-codigo); letter-spacing: .3em; color: var(--tinta-suave); opacity: .45; }
+
+/* lumos: la varita ilumina el cielo */
+.lumos body { background: radial-gradient(ellipse at 50% 0%, #4a3a6e, var(--noche-2) 60%) fixed, var(--noche-2); }
+.lumos .vela::before { box-shadow: 0 0 40px 18px rgba(255, 190, 80, .55); }

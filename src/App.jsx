@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase.js'
 import { Cielo, Esquinas, Huellas, Lechuza, Ornamento, Snitch, Varita } from './Decor.jsx'
+import { Cancion, Generaciones, GitLog, Grafo, Revelio, Terminal, Vida, hashCorto, spotifyId } from './Extras.jsx'
 
 const CASAS = [
   { id: 'gryffindor', nombre: 'Gryffindor', lema: 'Valentía' },
@@ -9,6 +10,8 @@ const CASAS = [
   { id: 'slytherin', nombre: 'Slytherin', lema: 'Ambición' },
 ]
 const MAX = 1000
+const CAMPOS = 'id,autor,mensaje,casa,spotify,generacion,created_at'
+const ANIOS = Array.from({ length: 17 }, (_, i) => 2026 - i)
 const fecha = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })
 
 export default function App() {
@@ -17,6 +20,7 @@ export default function App() {
   const [nuevos, setNuevos] = useState(() => new Set())
   const [vuelo, setVuelo] = useState(0)
   const modalRef = useRef(null)
+  const terminalRef = useRef(null)
   const abrir = () => modalRef.current.showModal()
   // También se puede abrir directo con el link terminado en #proyectar.
   const [proyectando, setProyectando] = useState(() => location.hash === '#proyectar')
@@ -29,7 +33,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    supabase.from('felicitaciones').select('id,autor,mensaje,casa,created_at').order('created_at', { ascending: false })
+    supabase.from('felicitaciones').select(CAMPOS).order('created_at', { ascending: false })
       .then(({ data, error }) => (error ? setError(true) : setMensajes(data)))
     const canal = supabase.channel('felicitaciones')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'felicitaciones' }, (p) => agregar(p.new))
@@ -43,22 +47,35 @@ export default function App() {
       <Snitch />
       <Varita />
       <Lechuza vuelo={vuelo} />
+      <Terminal mensajes={mensajes ?? []} abrirRef={terminalRef} />
       {proyectando && <Proyeccion mensajes={mensajes ?? []} nuevos={nuevos} onSalir={salir} />}
       <main className="pergamino" hidden={proyectando}>
         <div className="rollo" aria-hidden="true" />
         <article className="hoja">
           <Esquinas />
-          <Portada onEscribir={abrir} />
+          <Portada onEscribir={abrir} onSecreto={() => terminalRef.current?.()} />
+          <Vida />
           <Ornamento />
           <Muro mensajes={mensajes} error={error} nuevos={nuevos} onEscribir={abrir} />
           <Huellas />
+          <section aria-labelledby="t-mapa">
+            <h2 id="t-mapa">Mapa del Merodeador</h2>
+            <p className="sub">Cada alumno que escribe aparece en el mapa, conectado a su casa y a la Coordi.</p>
+            <Grafo mensajes={mensajes ?? []} />
+          </section>
           <CopaDeLasCasas mensajes={mensajes ?? []} />
+          <section aria-labelledby="t-gen">
+            <h2 id="t-gen">Generaciones</h2>
+            <p className="sub">Mensajes por año de ingreso. Pasa el cursor sobre una barra para ver el detalle.</p>
+            <Generaciones mensajes={mensajes ?? []} />
+          </section>
           <Ornamento />
           <Carta />
           <footer className="cierre">
             <p className="mano">Con muchísimo cariño,</p>
             <p className="alumnos">Tus alumnos</p>
             <p className="travesura">Travesura realizada.</p>
+            <p className="pista">↑ ↑ ↓ ↓ ← → ← → B A</p>
           </footer>
         </article>
         <div className="rollo" aria-hidden="true" />
@@ -134,14 +151,18 @@ function Proyeccion({ mensajes, nuevos, onSalir }) {
         <span className="eyebrow">Con cariño, de tus alumnos</span>
         <h1><span className="tinta">Feliz Cumpleaños</span><span className="nombre">Coordi Fernanda Millán</span></h1>
         <p className="cuenta">{mensajes.length} {mensajes.length === 1 ? 'mensaje' : 'mensajes'} · escribe el tuyo en <strong>{location.host}</strong></p>
+        <Vida color="--oro" alto={110} />
       </header>
       <div className="muro proy-muro">
         {mensajes.map((m) => (
           <article key={m.id} className={`nota${nuevos.has(m.id) ? ' nueva' : ''}`}
             style={{ '--r': `${((m.id * 37) % 5 - 2) * 0.7}deg`, ...(m.casa && { '--c': `var(--${m.casa})` }) }}>
             {m.casa && <span className="lacre" aria-label={`Casa ${m.casa}`} />}
-            <p>{m.mensaje}</p>
-            <footer><span className="autor">— {m.autor}</span></footer>
+            <Revelio texto={m.mensaje} />
+            <footer>
+              <span className="autor">— {m.autor}{m.spotify && <span className="nota-musica" title="Dedicó una canción"> ♫</span>}</span>
+              <code className="hash">{hashCorto(`${m.id}${m.autor}${m.mensaje}`)}</code>
+            </footer>
           </article>
         ))}
       </div>
@@ -150,10 +171,17 @@ function Proyeccion({ mensajes, nuevos, onSalir }) {
   )
 }
 
-function Portada({ onEscribir }) {
+function Portada({ onEscribir, onSecreto }) {
+  const toques = useRef([])
+  // Cinco toques al escudo en menos de 3 s abren la terminal secreta (para celulares sin teclado).
+  const tocar = () => {
+    const ahora = Date.now()
+    toques.current = [...toques.current.filter((t) => ahora - t < 3000), ahora]
+    if (toques.current.length >= 5) { toques.current = []; onSecreto() }
+  }
   return (
     <header className="portada">
-      <Escudo />
+      <Escudo onClick={tocar} />
       <span className="eyebrow">Colegio de Magia y Hechicería · Coordinación de Carrera</span>
       <h1>
         <span className="tinta">Feliz Cumpleaños</span>
@@ -165,9 +193,9 @@ function Portada({ onEscribir }) {
   )
 }
 
-function Escudo() {
+function Escudo({ onClick }) {
   return (
-    <svg className="escudo" viewBox="0 0 120 140" aria-hidden="true">
+    <svg className="escudo" viewBox="0 0 120 140" aria-hidden="true" onClick={onClick}>
       <defs>
         <clipPath id="escudo-forma"><path d="M60 6 L110 20 V64 C110 100 88 124 60 134 C32 124 10 100 10 64 V20 Z" /></clipPath>
       </defs>
@@ -245,22 +273,26 @@ function Formulario({ onEnviado }) {
   const [autor, setAutor] = useState('')
   const [mensaje, setMensaje] = useState('')
   const [casa, setCasa] = useState(null)
+  const [generacion, setGeneracion] = useState('')
+  const [cancion, setCancion] = useState('')
   const [estado, setEstado] = useState({ texto: '', error: false })
   const [enviando, setEnviando] = useState(false)
-  const autorRef = useRef(null), mensajeRef = useRef(null)
+  const autorRef = useRef(null), mensajeRef = useRef(null), cancionRef = useRef(null)
+  const trackId = cancion.trim() ? spotifyId(cancion) : null
 
   const enviar = async (e) => {
     e.preventDefault()
     if (!autor.trim()) { setEstado({ texto: 'Escribe tu nombre para firmar el mensaje.', error: true }); autorRef.current.focus(); return }
     if (!mensaje.trim()) { setEstado({ texto: 'El mensaje está vacío. Escribe unas palabras para la Coordi.', error: true }); mensajeRef.current.focus(); return }
+    if (cancion.trim() && !trackId) { setEstado({ texto: 'Ese link no es de una canción de Spotify. En Spotify abre la canción, toca Compartir > Copiar enlace y pégalo aquí.', error: true }); cancionRef.current.focus(); return }
     setEnviando(true)
     setEstado({ texto: 'Sellando con lacre...', error: false })
     const { data, error } = await supabase.from('felicitaciones')
-      .insert({ autor: autor.trim(), mensaje: mensaje.trim(), casa })
-      .select('id,autor,mensaje,casa,created_at').single()
+      .insert({ autor: autor.trim(), mensaje: mensaje.trim(), casa, spotify: trackId, generacion: generacion ? Number(generacion) : null })
+      .select(CAMPOS).single()
     setEnviando(false)
     if (error) { setEstado({ texto: 'La lechuza no pudo salir. Revisa tu conexión e inténtalo otra vez.', error: true }); return }
-    setAutor(''); setMensaje(''); setCasa(null)
+    setAutor(''); setMensaje(''); setCasa(null); setGeneracion(''); setCancion('')
     setEstado({ texto: '', error: false })
     onEnviado(data)
   }
@@ -277,6 +309,16 @@ function Formulario({ onEnviado }) {
           <textarea ref={mensajeRef} id="mensaje" maxLength={MAX} value={mensaje} onChange={(e) => setMensaje(e.target.value)} placeholder="Feliz cumpleaños, Coordi..." />
         </label>
         <div className="contador">{mensaje.length} / {MAX}</div>
+        <label htmlFor="cancion">Dedícale una canción (opcional)
+          <input ref={cancionRef} id="cancion" type="url" inputMode="url" value={cancion} onChange={(e) => setCancion(e.target.value)} placeholder="Pega el link de Spotify: open.spotify.com/track/..." />
+        </label>
+        {trackId && <Cancion id={trackId} />}
+        <label htmlFor="generacion">Tu generación (opcional)
+          <select id="generacion" value={generacion} onChange={(e) => setGeneracion(e.target.value)}>
+            <option value="">Año en que entraste a ICC</option>
+            {ANIOS.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </label>
         <fieldset>
           <legend>Tu casa (opcional)</legend>
           <div className="casas">
@@ -300,10 +342,16 @@ function Formulario({ onEnviado }) {
 }
 
 function Muro({ mensajes, error, nuevos, onEscribir }) {
+  const [vista, setVista] = useState('pergamino')
   return (
     <section aria-labelledby="t-muro">
       <h2 id="t-muro">Mensajes para la Coordi</h2>
       {mensajes?.length > 0 && <p className="cuenta">{mensajes.length} {mensajes.length === 1 ? 'mensaje recibido' : 'mensajes recibidos'}</p>}
+      <div className="vistas" role="group" aria-label="Vista de los mensajes">
+        <button type="button" aria-pressed={vista === 'pergamino'} onClick={() => setVista('pergamino')}>Pergamino</button>
+        <button type="button" aria-pressed={vista === 'git'} onClick={() => setVista('git')}><code>git log</code></button>
+      </div>
+      {vista === 'git' && mensajes && <GitLog mensajes={mensajes} fecha={fecha} />}
       {error && <p className="vacio">No se pudo abrir el pergamino. Revisa tu conexión y recarga la página.</p>}
       {!error && mensajes === null && <p className="vacio">Abriendo el pergamino...</p>}
       {mensajes?.length === 0 && (
@@ -312,15 +360,17 @@ function Muro({ mensajes, error, nuevos, onEscribir }) {
           <button className="boton-escribir" type="button" onClick={onEscribir}><Pluma /> Escribir la primera</button>
         </div>
       )}
-      <div className="muro">
+      <div className="muro" hidden={vista !== 'pergamino'}>
         {mensajes?.map((m) => (
           <article key={m.id} data-id={m.id} className={`nota${nuevos.has(m.id) ? ' nueva' : ''}`}
             style={{ '--r': `${((m.id * 37) % 5 - 2) * 0.7}deg`, ...(m.casa && { '--c': `var(--${m.casa})` }) }}>
             {m.casa && <span className="lacre" title={m.casa} aria-label={`Casa ${m.casa}`} />}
-            <p>{m.mensaje}</p>
+            <Revelio texto={m.mensaje} />
+            {m.spotify && <Cancion id={m.spotify} />}
             <footer>
-              <span className="autor">— {m.autor}</span>
+              <span className="autor">— {m.autor}{m.generacion && <small> · gen {m.generacion}</small>}</span>
               <time dateTime={m.created_at}>{fecha.format(new Date(m.created_at))}</time>
+              <code className="hash" title="Hash del mensaje">commit {hashCorto(`${m.id}${m.autor}${m.mensaje}`)}</code>
             </footer>
           </article>
         ))}
